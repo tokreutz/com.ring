@@ -22,6 +22,7 @@ class App extends Homey.App {
 
         this._api.on('refresh_device', this._syncDevice.bind(this));
         this._api.on('refresh_devices', this._syncDevices.bind(this));
+        this._api.on('refresh_modes', this._syncModes.bind(this));
 
         this._api.init();
     }
@@ -32,6 +33,10 @@ class App extends Homey.App {
 
     _syncDevices(data) {
         Homey.emit('refresh_devices', data);
+    }
+
+    _syncModes(data) {
+        Homey.emit('refresh_modes', data);
     }
 
     getRingDevices(callback) {
@@ -70,6 +75,26 @@ class App extends Homey.App {
         this._api.disableMotion(data, callback);
     }
 
+    async getModes() {
+        return await this._api.getModes();
+    }
+
+    async getMode(data) {
+        return await this._api.getMode(data.id);
+    }
+
+    async enableMode(data) {
+        console.log('enableMode', data);
+        return await this._api.enableMode(data.id);
+    }
+
+    async disableMode(data) {
+        return await this._api.disableMode(data.id);
+    }
+
+    async setMode(data, value) {
+        return await this._api.setMode(data.id, value);
+    }
 }
 
 module.exports = App;

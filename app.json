@@ -160,6 +160,34 @@
                     "template": "add_devices"
                 }
             ]
+        }, {
+            "id": "mode",
+            "name": {
+                "en": "Mode"
+            },
+            "images": {
+                "large": "./drivers/stickupcam/assets/images/large.jpg",
+                "small": "./drivers/stickupcam/assets/images/small.jpg"
+            },
+            "class": "homealarm",
+            "capabilities": [ "onoff", "homealarm_state" ],
+            "energy": { },
+            "pair": [
+                {
+                    "id": "start"
+                },
+                {
+                    "id": "list_devices",
+                    "template": "list_devices",
+                    "navigation": {
+                        "next": "add_devices"
+                    }
+                },
+                {
+                    "id": "add_devices",
+                    "template": "add_devices"
+                }
+            ]
         }
     ],
     "flow": {
