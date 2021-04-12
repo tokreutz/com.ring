@@ -1,6 +1,5 @@
 {
     "dependencies": {
-        "help": "^3.0.2",
         "ring-client-api": "^9.16.0"
     }
 }
