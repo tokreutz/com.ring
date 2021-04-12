@@ -95,6 +95,10 @@ class App extends Homey.App {
     async setMode(data, value) {
         return await this._api.setMode(data.id, value);
     }
+
+    subscribeModeUpdates(modeDeviceData, callback) {
+        this._api.subscribeModeUpdates(modeDeviceData.id, callback);
+    }
 }
 
 module.exports = App;

@@ -20,7 +20,7 @@ class DriverMode extends Driver {
                 foundDevices.push({
                     name : mode.location.name,
                     data : {
-                        id: mode.location.location_id
+                        id: mode.location.locationDetails.location_id
                     }
                 });
             });

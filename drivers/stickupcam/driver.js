@@ -47,7 +47,6 @@ class DriverStickUpCam extends Driver {
         this.log('_onPairListDevices');
 
         let foundDevices = [];
-
         Homey.app.getRingDevices((error, result) => {
             if (error) {
                 return this.error(error);

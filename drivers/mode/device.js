@@ -15,22 +15,13 @@ class DeviceMode extends Device {
         this.registerCapabilityListener('onoff', this.onCapabilityOnoff.bind(this));
         this.registerCapabilityListener('homealarm_state', this.onCapabilityHomeAlarmState.bind(this));
 
-        Homey.on('refresh_modes', this._syncModes.bind(this));
+        Homey.app.subscribeModeUpdates(this.getData(), this.refreshMode.bind(this));
     }
 
-    _syncModes(data) {
-        this.log('_syncModes', data);
-        data.forEach((mode) => {
-            if (mode.location.location_id === this.getData().id) {
-                this.refreshMode(mode.mode);
-            }
-        });
-    }
+    refreshMode(mode) {
+        this.log('refreshMode', mode);
 
-    refreshMode(data) {
-        this.log('refreshMode', data);
-
-        if (data.mode === 'disabled') {
+        if (mode === 'disabled') {
             this.setCapabilityValue('onoff', false)
                 .catch(this.error);
 
@@ -48,15 +39,15 @@ class DeviceMode extends Device {
             }
         }
 
-        if (data.mode === 'away') {
+        if (mode === 'away') {
             this.setCapabilityValue('homealarm_state', 'armed')
                 .catch(this.error);
         }
-        else if (data.mode === 'home') {
+        else if (mode === 'home') {
             this.setCapabilityValue('homealarm_state', 'partially_armed')
                 .catch(this.error);
         }
-        else if (data.mode === 'disarmed') {
+        else if (mode === 'disarmed') {
             this.setCapabilityValue('homealarm_state', 'disarmed')
                 .catch(this.error);
         }
@@ -79,7 +70,6 @@ class DeviceMode extends Device {
                 this.error(error);
             }
         }
-
         else if (value === false)
         {
             try {
