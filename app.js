@@ -75,8 +75,8 @@ class App extends Homey.App {
         this._api.disableMotion(data, callback);
     }
 
-    async getModes() {
-        return await this._api.getModes();
+    async getLocations() {
+        return await this._api.getLocations();
     }
 
     async getMode(data) {

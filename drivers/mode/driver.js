@@ -14,13 +14,13 @@ class DriverMode extends Driver {
 
         let foundDevices = [];
 
-        Homey.app.getModes().then((modes) => {
-            this.log(modes);
-            modes.forEach((mode) => {
+        Homey.app.getLocations().then((locations) => {
+            this.log(locations);
+            locations.forEach((location) => {
                 foundDevices.push({
-                    name : mode.location.name,
+                    name : location.name,
                     data : {
-                        id: mode.location.locationDetails.location_id
+                        id: location.locationDetails.location_id
                     }
                 });
             });
