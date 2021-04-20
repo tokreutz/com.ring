@@ -62,8 +62,11 @@ class DeviceMode extends Device {
             this.addCapability('homealarm_state');
         }
 
-        const devices = await location.getDevices()
-        const baseStation = devices.find(device => device.data.deviceType === RingDeviceType.BaseStation)
+        const devices = await location.getDevices();
+        this.log('useAlarmMode', 'devices', devices);
+
+        const baseStation = devices.find(device => device.data.deviceType === RingDeviceType.BaseStation);
+        this.log('useAlarmMode', 'baseStation', baseStation);
         this._baseStationSubscription = baseStation.onData.subscribe(this.refreshAlarmMode.bind(this));
     }
 

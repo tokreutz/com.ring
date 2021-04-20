@@ -163,7 +163,7 @@
         }, {
             "id": "mode",
             "name": {
-                "en": "Mode"
+                "en": "Alarm Mode"
             },
             "images": {
                 "large": "./drivers/stickupcam/assets/images/large.jpg",
