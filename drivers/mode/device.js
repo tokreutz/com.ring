@@ -3,7 +3,8 @@
 const Homey = require('homey');
 const Device = require('../../lib/Device.js');
 const {
-    Location
+    Location,
+    RingDeviceType
 } = require('ring-client-api');
 
 class DeviceMode extends Device {
@@ -15,9 +16,12 @@ class DeviceMode extends Device {
 
         this.registerCapabilityListener('onoff', this.onCapabilityOnoff.bind(this));
         this.registerCapabilityListener('homealarm_state', this.onCapabilityHomeAlarmState.bind(this));
+
+        this.setUnavailable();
     }
 
     refreshModeDevice(/** @type {Location} */ location) {
+        this.log('refreshModeDevice', this._modeSource);
         if (location == null) {
             this.setUnavailable();
             return;
@@ -27,7 +31,6 @@ class DeviceMode extends Device {
             this.setAvailable();
         }
 
-        // continue with updating a useAlarmMode|useLocationMode state, and its transition.
         if (location.hasAlarmBaseStation)
         {
             this.useAlarmMode(location);
@@ -39,16 +42,17 @@ class DeviceMode extends Device {
     }
 
     async useAlarmMode(/** @type {Location} */ location) {
-        this.log('useAlarmMode');
-        if (this._modeSource === 'alarm_mode') {
-            return;
-        }
-
+        this.log('useAlarmMode', this._modeSource);
+        
         if (this._locationModeSubscription) {
             this._locationModeSubscription.unsubscribe();
         }
 
-        this._modeSource = 'alarm_mode';
+        if (this._modeSource === 'use_alarm_mode') {
+            return;
+        }
+
+        this._modeSource = 'use_alarm_mode';
         
         if (this.hasCapability('onoff')) {
             this.removeCapability('onoff');
@@ -65,10 +69,11 @@ class DeviceMode extends Device {
 
     async refreshAlarmMode(baseStationData) {
         this.log('refreshAlarmMode', baseStationData);
-        /** @type {Location} */
+
         const location = await Homey.app.getLocation(this.getData());
         const alarmMode = await location.getAlarmMode();
 
+        this.log(alarmMode);
         if (alarmMode === 'all') {
             this.setCapabilityValue('homealarm_state', 'armed')
                 .catch(this.error);
@@ -84,17 +89,26 @@ class DeviceMode extends Device {
     }
 
     useLocationMode(/** @type {Location} */ location) {
-        this.log('useAlarmMode');
-        if (this._modeSource === 'location_mode') {
-            return;
-        }
-
-        this._modeSource = 'location_mode';
-
+        this.log('useLocationMode', this._modeSource);
+        
         if (this._baseStationSubscription) {
             this._baseStationSubscription.unsubscribe();
         }
         
+        if (this._modeSource === 'use_location_mode') {
+            return;
+        }
+        
+        this._modeSource = 'use_location_mode';
+
+        if (!this.hasCapability('onoff')) {
+            this.addCapability('onoff');
+        }
+
+        if (!this.hasCapability('homealarm_state')) {
+            this.addCapability('homealarm_state');
+        }
+
         this._locationModeSubscription = location.onLocationMode.subscribe(this.refreshLocationMode.bind(this));
     }
 
@@ -133,7 +147,6 @@ class DeviceMode extends Device {
     }
 
     async onCapabilityOnoff( value, opts ) {
-
         this.log('onCapabilityOnoff:', value);
 
         if (value === true)
@@ -143,7 +156,7 @@ class DeviceMode extends Device {
                     this.addCapability('homealarm_state');
                 }
 
-                await Homey.app.enableMode(this.getData());
+                await Homey.app.enableLocationMode(this.getData());
             } catch (error) {
                 console.log('error:', error);
                 this.error(error);
@@ -152,7 +165,7 @@ class DeviceMode extends Device {
         else if (value === false)
         {
             try {
-                await Homey.app.disableMode(this.getData());
+                await Homey.app.disableLocationMode(this.getData());
                 this.removeCapability('homealarm_state');
             } catch (error) {
                 console.log('error:', error);

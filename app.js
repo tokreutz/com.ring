@@ -83,17 +83,12 @@ class App extends Homey.App {
         return await this._api.getLocation(location_id);
     }
 
-    async getMode(data) {
-        return await this._api.getMode(data.id);
+    async enableLocationMode(data) {
+        return await this._api.enableLocationMode(data.id);
     }
 
-    async enableMode(data) {
-        console.log('enableMode', data);
-        return await this._api.enableMode(data.id);
-    }
-
-    async disableMode(data) {
-        return await this._api.disableMode(data.id);
+    async disableLocationMode(data) {
+        return await this._api.disableLocationMode(data.id);
     }
 
     async setMode(data, value) {
