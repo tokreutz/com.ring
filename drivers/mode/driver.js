@@ -11,14 +11,16 @@ class DriverMode extends Driver {
     onInit() {
         this.log('onInit');
         setInterval(this._refreshModeDevices.bind(this), refreshModeSourceInterval);
-        setInterval(this._refreshLocations.bind(this), refreshLocationsInterval);
+        setInterval(this._refreshLocationsDevices.bind(this), refreshLocationsInterval);
         this._refreshModeDevices();
     }
 
-    async _refreshLocations() {
-        this.log('_refreshLocations');
-        const location = await Homey.app.getLocations();
-        await locations.getDevices();
+    async _refreshLocationsDevices() {
+        this.log('_refreshLocationsDevices');
+        const locations = await Homey.app.getLocations();
+        locations.forEach((location) => {
+            location.getDevices();
+        });
     }
 
     async _refreshModeDevices() {
