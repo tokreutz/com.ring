@@ -2,8 +2,9 @@
 
 const Homey = require('homey');
 const Device = require('../../lib/Device.js');
-
-const statusTimeout = 10000;
+const {
+    Location
+} = require('ring-client-api');
 
 class DeviceMode extends Device {
 
@@ -14,12 +15,91 @@ class DeviceMode extends Device {
 
         this.registerCapabilityListener('onoff', this.onCapabilityOnoff.bind(this));
         this.registerCapabilityListener('homealarm_state', this.onCapabilityHomeAlarmState.bind(this));
-
-        Homey.app.subscribeModeUpdates(this.getData(), this.refreshMode.bind(this));
     }
 
-    refreshMode(mode) {
-        this.log('refreshMode', mode);
+    refreshModeDevice(/** @type {Location} */ location) {
+        if (location == null) {
+            this.setUnavailable();
+            return;
+        }
+        
+        if (!this.getAvailable()) {
+            this.setAvailable();
+        }
+
+        // continue with updating a useAlarmMode|useLocationMode state, and its transition.
+        if (location.hasAlarmBaseStation)
+        {
+            this.useAlarmMode(location);
+        }
+        else
+        {
+            this.useLocationMode(location);
+        }
+    }
+
+    async useAlarmMode(/** @type {Location} */ location) {
+        this.log('useAlarmMode');
+        if (this._modeSource === 'alarm_mode') {
+            return;
+        }
+
+        if (this._locationModeSubscription) {
+            this._locationModeSubscription.unsubscribe();
+        }
+
+        this._modeSource = 'alarm_mode';
+        
+        if (this.hasCapability('onoff')) {
+            this.removeCapability('onoff');
+        }
+
+        if (!this.hasCapability('homealarm_state')) {
+            this.addCapability('homealarm_state');
+        }
+
+        const devices = await location.getDevices()
+        const baseStation = devices.find(device => device.data.deviceType === RingDeviceType.BaseStation)
+        this._baseStationSubscription = baseStation.onData.subscribe(this.refreshAlarmMode.bind(this));
+    }
+
+    async refreshAlarmMode(baseStationData) {
+        this.log('refreshAlarmMode', baseStationData);
+        /** @type {Location} */
+        const location = await Homey.app.getLocation(this.getData());
+        const alarmMode = await location.getAlarmMode();
+
+        if (alarmMode === 'all') {
+            this.setCapabilityValue('homealarm_state', 'armed')
+                .catch(this.error);
+        }
+        else if (alarmMode === 'some') {
+            this.setCapabilityValue('homealarm_state', 'partially_armed')
+                .catch(this.error);
+        }
+        else if (alarmMode === 'none') {
+            this.setCapabilityValue('homealarm_state', 'disarmed')
+                .catch(this.error);
+        }
+    }
+
+    useLocationMode(/** @type {Location} */ location) {
+        this.log('useAlarmMode');
+        if (this._modeSource === 'location_mode') {
+            return;
+        }
+
+        this._modeSource = 'location_mode';
+
+        if (this._baseStationSubscription) {
+            this._baseStationSubscription.unsubscribe();
+        }
+        
+        this._locationModeSubscription = location.onLocationMode.subscribe(this.refreshLocationMode.bind(this));
+    }
+
+    refreshLocationMode(mode) {
+        this.log('refreshLocationMode', mode);
 
         if (mode === 'disabled') {
             this.setCapabilityValue('onoff', false)
@@ -35,7 +115,6 @@ class DeviceMode extends Device {
                 
             if (!this.hasCapability('homealarm_state')) {
                 this.addCapability('homealarm_state');
-                this.setCapabilityValue('homealarm_state', 'armed');
             }
         }
 
@@ -60,11 +139,11 @@ class DeviceMode extends Device {
         if (value === true)
         {
             try {
-                await Homey.app.enableMode(this.getData());
                 if (!this.hasCapability('homealarm_state')) {
                     this.addCapability('homealarm_state');
-                    this.setCapabilityValue('homealarm_state', 'armed');
                 }
+
+                await Homey.app.enableMode(this.getData());
             } catch (error) {
                 console.log('error:', error);
                 this.error(error);

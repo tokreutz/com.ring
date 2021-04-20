@@ -79,6 +79,10 @@ class App extends Homey.App {
         return await this._api.getLocations();
     }
 
+    async getLocation(location_id) {
+        return await this._api.getLocation(location_id);
+    }
+
     async getMode(data) {
         return await this._api.getMode(data.id);
     }
@@ -94,10 +98,6 @@ class App extends Homey.App {
 
     async setMode(data, value) {
         return await this._api.setMode(data.id, value);
-    }
-
-    subscribeModeUpdates(modeDeviceData, callback) {
-        this._api.subscribeModeUpdates(modeDeviceData.id, callback);
     }
 }
 

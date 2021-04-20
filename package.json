@@ -1,5 +1,5 @@
 {
     "dependencies": {
-        "ring-client-api": "^9.16.0"
+        "ring-client-api": "^9.17.0"
     }
 }

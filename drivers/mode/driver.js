@@ -3,10 +3,23 @@
 const Homey = require('homey');
 const Driver = require('../../lib/Driver.js');
 
+const refreshModeSourceInterval = 60000;
+
 class DriverMode extends Driver {
 
     onInit() {
         this.log('onInit');
+        setInterval(this._refreshModeDevices.bind(this), refreshModeSourceInterval);
+        this._refreshModeDevices();
+    }
+
+    async _refreshModeDevices() {
+        const locations = await Homey.app.getLocations();
+        const modeDevices = this.getDevices();
+        modeDevices.forEach((modeDevice) => {
+            const location = locations.find((l) => l.locationDetails.location_id == modeDevice.getData().id);
+            modeDevice.refreshModeDevice(location);
+        });
     }
 
     _onPairListDevices(data, callback) {
@@ -15,7 +28,6 @@ class DriverMode extends Driver {
         let foundDevices = [];
 
         Homey.app.getLocations().then((locations) => {
-            this.log(locations);
             locations.forEach((location) => {
                 foundDevices.push({
                     name : location.name,
@@ -25,7 +37,6 @@ class DriverMode extends Driver {
                 });
             });
 
-            this.log(foundDevices);
             callback(null, foundDevices);
         }).catch((error) => {
             this.error(modes);
