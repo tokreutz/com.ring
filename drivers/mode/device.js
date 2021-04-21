@@ -81,16 +81,19 @@ class DeviceMode extends Device {
         const location = await Homey.app.getLocation(this.getData());
         const alarmMode = await location.getAlarmMode();
 
-        this.log(alarmMode);
+        this.log('refreshAlarmMode', 'alarmMode', alarmMode);
         if (alarmMode === 'all') {
+            this.log('refreshAlarmMode', 'setCapabilityValue', 'armed');
             this.setCapabilityValue('homealarm_state', 'armed')
                 .catch(this.error);
         }
         else if (alarmMode === 'some') {
+            this.log('refreshAlarmMode', 'setCapabilityValue', 'partially_armed');
             this.setCapabilityValue('homealarm_state', 'partially_armed')
                 .catch(this.error);
         }
         else if (alarmMode === 'none') {
+            this.log('refreshAlarmMode', 'setCapabilityValue', 'disarmed');
             this.setCapabilityValue('homealarm_state', 'disarmed')
                 .catch(this.error);
         }
