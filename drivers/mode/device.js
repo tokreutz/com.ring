@@ -58,6 +58,7 @@ class DeviceMode extends Device {
         }
 
         if (this._modeSource === 'use_alarm_mode' && this._baseStationSubscription != null) {
+            this.log('useAlarmMode', 'early termination', this._modeSource, this._baseStationSubscription);
             return;
         }
         
