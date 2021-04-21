@@ -79,8 +79,8 @@ class App extends Homey.App {
         return await this._api.getLocations();
     }
 
-    async getLocation(location_id) {
-        return await this._api.getLocation(location_id);
+    async getLocation(data) {
+        return await this._api.getLocation(data.id);
     }
 
     async enableLocationMode(data) {

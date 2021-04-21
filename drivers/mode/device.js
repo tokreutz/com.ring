@@ -72,7 +72,7 @@ class DeviceMode extends Device {
 
     async refreshAlarmMode(baseStationData) {
         this.log('refreshAlarmMode', baseStationData);
-
+        
         const location = await Homey.app.getLocation(this.getData());
         const alarmMode = await location.getAlarmMode();
 
