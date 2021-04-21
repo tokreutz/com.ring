@@ -3,6 +3,10 @@
 const Homey = require('homey');
 const Driver = require('../../lib/Driver.js');
 
+const {
+    Location
+} = require('ring-client-api');
+
 const refreshModeSourceInterval = 3000;
 const refreshLocationsInterval = 3000;
 
@@ -18,8 +22,8 @@ class DriverMode extends Driver {
     async _refreshLocationsDevices() {
         this.log('_refreshLocationsDevices');
         const locations = await Homey.app.getLocations();
-        locations.forEach((location) => {
-            location.getDevices();
+        locations.forEach((/** @type {Location} */location) => {
+            await location.getDevices();
         });
     }
 
