@@ -18,6 +18,10 @@ class DeviceMode extends Device {
         this.registerCapabilityListener('homealarm_state', this.onCapabilityHomeAlarmState.bind(this));
 
         this.setUnavailable();
+
+        this._baseStationSubscription = null;
+        this._locationModeSubscription = null;
+        this._modeSource = null;
     }
 
     refreshModeDevice(/** @type {Location} */ location) {
@@ -29,6 +33,10 @@ class DeviceMode extends Device {
         
         if (!this.getAvailable()) {
             this.setAvailable();
+        }
+
+        if (!this.hasCapability('homealarm_state')) {
+            this.addCapability('homealarm_state');
         }
 
         if (location.hasAlarmBaseStation)
@@ -46,9 +54,10 @@ class DeviceMode extends Device {
         
         if (this._locationModeSubscription) {
             this._locationModeSubscription.unsubscribe();
+            this._locationModeSubscription = null;
         }
 
-        if (this._modeSource === 'use_alarm_mode') {
+        if (this._modeSource === 'use_alarm_mode' && this._baseStationSubscription != null) {
             return;
         }
 
@@ -56,10 +65,6 @@ class DeviceMode extends Device {
         
         if (this.hasCapability('onoff')) {
             this.removeCapability('onoff');
-        }
-
-        if (!this.hasCapability('homealarm_state')) {
-            this.addCapability('homealarm_state');
         }
 
         const devices = await location.getDevices();
@@ -96,9 +101,10 @@ class DeviceMode extends Device {
         
         if (this._baseStationSubscription) {
             this._baseStationSubscription.unsubscribe();
+            this._baseStationSubscription = null;
         }
         
-        if (this._modeSource === 'use_location_mode') {
+        if (this._modeSource === 'use_location_mode' && this._locationModeSubscription != null) {
             return;
         }
         
@@ -106,10 +112,6 @@ class DeviceMode extends Device {
 
         if (!this.hasCapability('onoff')) {
             this.addCapability('onoff');
-        }
-
-        if (!this.hasCapability('homealarm_state')) {
-            this.addCapability('homealarm_state');
         }
 
         this._locationModeSubscription = location.onLocationMode.subscribe(this.refreshLocationMode.bind(this));
