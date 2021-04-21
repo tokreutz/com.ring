@@ -60,8 +60,6 @@ class DeviceMode extends Device {
         if (this._modeSource === 'use_alarm_mode' && this._baseStationSubscription != null) {
             return;
         }
-
-        this._modeSource = 'use_alarm_mode';
         
         if (this.hasCapability('onoff')) {
             this.removeCapability('onoff');
@@ -71,8 +69,15 @@ class DeviceMode extends Device {
         this.log('useAlarmMode', 'devices', devices);
 
         const baseStation = devices.find(device => device.data.deviceType === RingDeviceType.BaseStation);
-        this.log('useAlarmMode', 'baseStation', baseStation);
-        this._baseStationSubscription = baseStation.onData.subscribe(this.refreshAlarmMode.bind(this));
+        if (baseStation) {            
+            this.log('useAlarmMode', 'baseStation', baseStation);
+            this._baseStationSubscription = baseStation.onData.subscribe(this.refreshAlarmMode.bind(this));
+            this._modeSource = 'use_alarm_mode';
+        } else {
+            this.log('useAlarmMode', 'Found no base station');
+            this._baseStationSubscription = null;
+            this._modeSource = null;
+        }
     }
 
     async refreshAlarmMode(baseStationData) {
