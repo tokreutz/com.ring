@@ -7,26 +7,15 @@ const {
     Location
 } = require('ring-client-api');
 
-const refreshModeSourceInterval = 3000;
-const refreshLocationsInterval = 3000;
+const refreshModeSourceInterval = 10000;
 
 class DriverMode extends Driver {
 
     onInit() {
         this.log('onInit');
         setInterval(this._refreshModeDevices.bind(this), refreshModeSourceInterval);
-        setInterval(this._refreshLocationsDevices.bind(this), refreshLocationsInterval);
         this._refreshModeDevices();
     }
-
-    async _refreshLocationsDevices() {
-        this.log('_refreshLocationsDevices');
-        const locations = await Homey.app.getLocations();
-        locations.forEach((/** @type {Location} */location) => {
-            await location.getDevices();
-        });
-    }
-
     async _refreshModeDevices() {
         this.log('_refreshModeDevices');
         const locations = await Homey.app.getLocations();

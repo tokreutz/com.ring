@@ -18,10 +18,6 @@ class DeviceMode extends Device {
         this.registerCapabilityListener('homealarm_state', this.onCapabilityHomeAlarmState.bind(this));
 
         this.setUnavailable();
-
-        this._baseStationSubscription = null;
-        this._locationModeSubscription = null;
-        this._modeSource = null;
     }
 
     refreshModeDevice(/** @type {Location} */ location) {
@@ -41,50 +37,21 @@ class DeviceMode extends Device {
 
         if (location.hasAlarmBaseStation)
         {
-            this.useAlarmMode(location);
+            this.refreshAlarmMode(location);
         }
         else
         {
-            this.useLocationMode(location);
+            this.refreshLocationMode(location);
         }
     }
 
-    async useAlarmMode(/** @type {Location} */ location) {
-        this.log('useAlarmMode', this._modeSource);
-        
-        if (this._locationModeSubscription) {
-            this._locationModeSubscription.unsubscribe();
-            this._locationModeSubscription = null;
-        }
-
-        if (this._modeSource === 'use_alarm_mode' && this._baseStationSubscription != null) {
-            this.log('useAlarmMode', 'early termination', this._modeSource, this._baseStationSubscription);
-            return;
-        }
+    async refreshAlarmMode(/** @type {Location} */ location) {
+        this.log('refreshAlarmMode');
         
         if (this.hasCapability('onoff')) {
             this.removeCapability('onoff');
         }
 
-        const devices = await location.getDevices();
-        this.log('useAlarmMode', 'devices', devices);
-
-        const baseStation = devices.find(device => device.data.deviceType === RingDeviceType.BaseStation);
-        if (baseStation) {            
-            this.log('useAlarmMode', 'baseStation', baseStation);
-            this._baseStationSubscription = baseStation.onData.subscribe(this.refreshAlarmMode.bind(this));
-            this._modeSource = 'use_alarm_mode';
-        } else {
-            this.log('useAlarmMode', 'Found no base station');
-            this._baseStationSubscription = null;
-            this._modeSource = null;
-        }
-    }
-
-    async refreshAlarmMode(baseStationData) {
-        this.log('refreshAlarmMode', baseStationData);
-        
-        const location = await Homey.app.getLocation(this.getData());
         const alarmMode = await location.getAlarmMode();
 
         this.log('refreshAlarmMode', 'alarmMode', alarmMode);
@@ -105,29 +72,15 @@ class DeviceMode extends Device {
         }
     }
 
-    useLocationMode(/** @type {Location} */ location) {
-        this.log('useLocationMode', this._modeSource);
+    async refreshLocationMode(/** @type {Location} */ location) {
+        this.log('refreshLocationMode');
         
-        if (this._baseStationSubscription) {
-            this._baseStationSubscription.unsubscribe();
-            this._baseStationSubscription = null;
-        }
-        
-        if (this._modeSource === 'use_location_mode' && this._locationModeSubscription != null) {
-            return;
-        }
-        
-        this._modeSource = 'use_location_mode';
-
         if (!this.hasCapability('onoff')) {
             this.addCapability('onoff');
         }
 
-        this._locationModeSubscription = location.onLocationMode.subscribe(this.refreshLocationMode.bind(this));
-    }
-
-    refreshLocationMode(mode) {
-        this.log('refreshLocationMode', mode);
+        const modeResponse = await location.getLocationMode();
+        const mode = modeResponse.mode;
 
         if (mode === 'disabled') {
             this.setCapabilityValue('onoff', false)
@@ -144,19 +97,19 @@ class DeviceMode extends Device {
             if (!this.hasCapability('homealarm_state')) {
                 this.addCapability('homealarm_state');
             }
-        }
-
-        if (mode === 'away') {
-            this.setCapabilityValue('homealarm_state', 'armed')
+            
+            if (mode === 'away') {
+                this.setCapabilityValue('homealarm_state', 'armed')
                 .catch(this.error);
-        }
-        else if (mode === 'home') {
-            this.setCapabilityValue('homealarm_state', 'partially_armed')
+            }
+            else if (mode === 'home') {
+                this.setCapabilityValue('homealarm_state', 'partially_armed')
                 .catch(this.error);
-        }
-        else if (mode === 'disarmed') {
-            this.setCapabilityValue('homealarm_state', 'disarmed')
+            }
+            else if (mode === 'disarmed') {
+                this.setCapabilityValue('homealarm_state', 'disarmed')
                 .catch(this.error);
+            }
         }
     }
 
