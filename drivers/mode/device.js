@@ -4,8 +4,63 @@ const Homey = require('homey');
 const Device = require('../../lib/Device.js');
 const {
     Location,
-    RingDeviceType
 } = require('ring-client-api');
+
+
+function mapHomeyAlarmStateToRingAlarmMode(alarmState) {
+    switch (alarmState) {
+        case 'disarmed':
+            return 'none';
+        case 'partially_armed':
+            return 'some';
+        case 'armed':
+            return 'all';
+        default:
+            throw "Unexpected Homey alarm_state " + alarmState;
+    }
+}
+
+function mapHomeyAlarmStateToRingLocationMode(alarmState) {
+    switch (alarmState) {
+        case 'disarmed':
+            return 'disarmed';
+        case 'partially_armed':
+            return 'home';
+        case 'armed':
+            return 'away';
+        default:
+            throw "Unexpected Homey alarm_state " + alarmState;
+    }
+}
+
+function mapRingAlarmModeToHomeyAlarmState(alarmMode) {
+    switch (alarmMode) {
+        case 'none':
+            return 'disarmed';
+        case 'some':
+            return 'partially_armed';
+        case 'all':
+            return 'armed';
+        default:
+            throw "Unexpected Homey alarmMode " + alarmMode;
+    }
+}
+
+function mapRingLocationModeHomeyAlarmState(locationMode) {
+    switch (locationMode) {
+        case 'disabled':
+        case 'unset':
+            return null;
+        case 'disarmed':
+            return 'disarmed';
+        case 'home':
+            return 'partially_armed';
+        case 'away':
+            return 'armed';
+        default:
+            throw "Unexpected Homey locationMode " + locationMode;
+    }
+}
 
 class DeviceMode extends Device {
 
@@ -53,23 +108,9 @@ class DeviceMode extends Device {
         }
 
         const alarmMode = await location.getAlarmMode();
-
-        this.log('refreshAlarmMode', 'alarmMode', alarmMode);
-        if (alarmMode === 'all') {
-            this.log('refreshAlarmMode', 'setCapabilityValue', 'armed');
-            this.setCapabilityValue('homealarm_state', 'armed')
-                .catch(this.error);
-        }
-        else if (alarmMode === 'some') {
-            this.log('refreshAlarmMode', 'setCapabilityValue', 'partially_armed');
-            this.setCapabilityValue('homealarm_state', 'partially_armed')
-                .catch(this.error);
-        }
-        else if (alarmMode === 'none') {
-            this.log('refreshAlarmMode', 'setCapabilityValue', 'disarmed');
-            this.setCapabilityValue('homealarm_state', 'disarmed')
-                .catch(this.error);
-        }
+        const alarmState = mapRingAlarmModeToHomeyAlarmState(alarmMode);
+        this.setCapabilityValue('homealarm_state', alarmState)
+            .catch(this.error);
     }
 
     async refreshLocationMode(/** @type {Location} */ location) {
@@ -80,9 +121,10 @@ class DeviceMode extends Device {
         }
 
         const modeResponse = await location.getLocationMode();
-        const mode = modeResponse.mode;
+        const locationMode = modeResponse.mode;
+        const mode = mapRingLocationModeHomeyAlarmState(locationMode);
 
-        if (mode === 'disabled') {
+        if (!mode) {
             this.setCapabilityValue('onoff', false)
                 .catch(this.error);
 
@@ -98,18 +140,8 @@ class DeviceMode extends Device {
                 this.addCapability('homealarm_state');
             }
             
-            if (mode === 'away') {
-                this.setCapabilityValue('homealarm_state', 'armed')
+            this.setCapabilityValue('homealarm_state', mode)
                 .catch(this.error);
-            }
-            else if (mode === 'home') {
-                this.setCapabilityValue('homealarm_state', 'partially_armed')
-                .catch(this.error);
-            }
-            else if (mode === 'disarmed') {
-                this.setCapabilityValue('homealarm_state', 'disarmed')
-                .catch(this.error);
-            }
         }
     }
 
@@ -123,7 +155,7 @@ class DeviceMode extends Device {
                     this.addCapability('homealarm_state');
                 }
 
-                await Homey.app.enableLocationMode(this.getData());
+                await Homey.app.enableLocationMode(this.getData().id);
             } catch (error) {
                 console.log('error:', error);
                 this.error(error);
@@ -132,7 +164,7 @@ class DeviceMode extends Device {
         else if (value === false)
         {
             try {
-                await Homey.app.disableLocationMode(this.getData());
+                await Homey.app.disableLocationMode(this.getData().id);
                 this.removeCapability('homealarm_state');
             } catch (error) {
                 console.log('error:', error);
@@ -142,17 +174,20 @@ class DeviceMode extends Device {
     }
 
     async onCapabilityHomeAlarmState( value, opts ) {
-
         this.log('onCapabilityHomeAlarmState:', value);
-        
-        if (value === 'armed') {
-            await Homey.app.setMode(this.getData(), 'away');
-        }
-        else if (value === 'partially_armed') {
-            await Homey.app.setMode(this.getData(), 'home');
-        }
-        else if (value === 'disarmed') {
-            await Homey.app.setMode(this.getData(), 'disarmed');
+
+        const location = await Homey.app.getLocation(this.getData().id);
+        var supportsLocationModeSwitching = await location.supportsLocationModeSwitching();
+        if (supportsLocationModeSwitching) {
+            const locationMode = mapHomeyAlarmStateToRingLocationMode(value);
+            return location.setLocationMode(locationMode);
+        } else {
+            if (location.hasAlarmBaseStation) {
+                const alarmMode = mapHomeyAlarmStateToRingAlarmMode(value);
+                return location.setAlarmMode(alarmMode);
+            }
+
+            throw new Error("Unable to set location mode.");
         }
     }
 }

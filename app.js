@@ -22,7 +22,6 @@ class App extends Homey.App {
 
         this._api.on('refresh_device', this._syncDevice.bind(this));
         this._api.on('refresh_devices', this._syncDevices.bind(this));
-        this._api.on('refresh_modes', this._syncModes.bind(this));
 
         this._api.init();
     }
@@ -34,11 +33,6 @@ class App extends Homey.App {
     _syncDevices(data) {
         Homey.emit('refresh_devices', data);
     }
-
-    _syncModes(data) {
-        Homey.emit('refresh_modes', data);
-    }
-
     getRingDevices(callback) {
         this._api.getDevices(callback);
     }
@@ -74,25 +68,43 @@ class App extends Homey.App {
     disableMotion(data, callback) {
         this._api.disableMotion(data, callback);
     }
-
+    
     async getLocations() {
-        return await this._api.getLocations();
+        const ring = await this._api.getRingApi();
+        return ring.getLocations();
     }
 
-    async getLocation(data) {
-        return await this._api.getLocation(data.id);
+    async getLocation(location_id) {
+        var locations = await this.getLocations();
+        return locations.find(loc => {
+            return loc.locationDetails.location_id == location_id;
+        });
     }
 
-    async enableLocationMode(data) {
-        return await this._api.enableLocationMode(data.id);
+    async enableLocationMode(location_id) {
+        const location = await this.getLocation(location_id);
+        await location.enableLocationModes();
     }
 
-    async disableLocationMode(data) {
-        return await this._api.disableLocationMode(data.id);
+    async disableLocationMode(location_id) {
+        var location = await this.getLocation(location_id);
+        location.disableLocationModes();
     }
 
-    async setMode(data, value) {
-        return await this._api.setMode(data.id, value);
+    async setMode(location_id, value) {   
+        var location = await this.getLocation(location_id);
+        var supportsLocationModeSwitching = await location.supportsLocationModeSwitching();
+        if (supportsLocationModeSwitching) {
+            const locationMode = mapHomeyAlarmStateToRingLocationMode(value);
+            return location.setLocationMode(locationMode);
+        } else {
+            if (location.hasAlarmBaseStation) {
+                const alarmMode = mapHomeyAlarmStateToRingAlarmMode(value);
+                return location.setAlarmMode(alarmMode);
+            }
+
+            throw new Error("Unable to set location mode.");
+        }
     }
 }
 
